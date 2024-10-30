@@ -1,0 +1,79 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`print model 1`] = `
+"specification {
+  element actor {
+    style {
+      shape person
+    }
+  }
+  element system {}
+  element component {
+    style {
+      color secondary
+    }
+  }
+  tag next
+  tag api
+}
+model {
+  alice = actor 'alice' {}
+  cloud = system 'Cloud' {
+    #next
+    description 'The cloud'
+    
+    ui = component 'ui' {
+      dashboard = component 'dashboard' {
+        technology 'React'
+        style {
+          shape browser
+          icon tech:react
+        }
+      }
+    }
+    
+    backend = component 'Cloud Backend' {
+      description 'Backend services'
+      
+      api = component 'API' {
+        #api, #next
+        technology 'GraphQL'
+        style {
+          color green
+        }
+      }
+    }
+  }
+}
+"
+`;
+
+exports[`printSpecification 1`] = `
+"specification {
+  element empty {}
+  element db {
+    style {
+      shape storage
+    }
+  }
+  element withOpacity {
+    technology 'tech1'
+    notation 'note1'
+    style {
+      color red
+      opacity 50%
+    }
+  }
+  element multiline {
+    notation '
+      line1
+      
+      line2
+    '
+  }
+  tag tag1
+  tag tag2
+  tag next
+}
+"
+`;

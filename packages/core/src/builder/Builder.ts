@@ -228,7 +228,12 @@ function builder<Spec extends BuilderSpecification, T extends AnyTypes>(
   const toLikeC4Specification = (): Types.ToParsedLikeC4Model<T>['specification'] => ({
     tags: (spec.tags ?? []) as Tag<T['Tag']>[],
     elements: {
-      ...spec.elements as any
+      ...mapValues(spec.elements, ({ style, ...rest }) => {
+        return {
+          ...rest,
+          style: style ?? {}
+        }
+      })
     },
     relationships: {
       ...spec.relationships
