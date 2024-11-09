@@ -354,27 +354,34 @@ export interface ViewAutoLayout {
   rankSep?: number
   nodeSep?: number
 }
-export interface ComputedElementView<
-  ViewIDs extends string = string,
-  Tags extends string = string
-> extends Omit<ElementView<ViewIDs, Tags>, 'rules' | 'docUri'>, ViewWithHash, ViewWithNotation {
-  readonly extends?: ViewID<ViewIDs>
+
+interface BaseComputedView extends ViewWithHash, ViewWithNotation {
   readonly autoLayout: ViewAutoLayout
-  readonly nodes: ComputedNode[]
-  readonly edges: ComputedEdge[]
+  /**
+   * How edges should be drawn
+   * @default 'bezier'
+   */
+  readonly edgeType?: 'bezier' | 'polyline'
   rules?: never
   docUri?: never
 }
+
+export interface ComputedElementView<
+  ViewIDs extends string = string,
+  Tags extends string = string
+> extends Omit<ElementView<ViewIDs, Tags>, 'rules' | 'docUri'>, BaseComputedView {
+  readonly extends?: ViewID<ViewIDs>
+  readonly nodes: ComputedNode[]
+  readonly edges: ComputedEdge[]
+}
+
 export interface ComputedDynamicView<
   ViewIDs extends string = string,
   Tags extends string = string
-> extends Omit<DynamicView<ViewIDs, Tags>, 'rules' | 'steps' | 'docUri'>, ViewWithHash, ViewWithNotation {
-  readonly autoLayout: ViewAutoLayout
+> extends Omit<DynamicView<ViewIDs, Tags>, 'rules' | 'steps' | 'docUri'>, BaseComputedView {
   readonly nodes: ComputedNode[]
   readonly edges: ComputedEdge[]
   steps?: never
-  rules?: never
-  docUri?: never
 }
 export function isComputedDynamicView(view: ComputedView): view is ComputedDynamicView {
   return view.__ === 'dynamic'

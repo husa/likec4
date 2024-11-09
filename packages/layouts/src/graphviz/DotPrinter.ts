@@ -143,6 +143,7 @@ export abstract class DotPrinter<V extends ComputedView = ComputedView> {
   }
 
   protected createGraph(): RootGraphModel {
+    const isPolyline = this.view.edgeType === 'polyline'
     const autoLayout = this.view.autoLayout
     const G = digraph({
       [_.bgcolor]: 'transparent',
@@ -150,7 +151,7 @@ export abstract class DotPrinter<V extends ComputedView = ComputedView> {
       [_.compound]: true,
       [_.rankdir]: autoLayout.direction,
       [_.TBbalance]: 'min',
-      [_.splines]: 'spline',
+      [_.splines]: isPolyline ? 'compound' : 'spline',
       [_.outputorder]: 'nodesfirst',
       // [_.mclimit]: 5,
       // [_.nslimit]: 5,
@@ -161,7 +162,6 @@ export abstract class DotPrinter<V extends ComputedView = ComputedView> {
       [_.pack]: pxToPoints(autoLayout.rankSep ?? 120),
       [_.packmode]: 'array_3',
       [_.pad]: pxToInch(15),
-      [_.forcelabels]: true,
       [_.fontname]: FontName
     })
     G.attributes.graph.apply({
@@ -177,7 +177,6 @@ export abstract class DotPrinter<V extends ComputedView = ComputedView> {
   protected applyNodeAttributes(node: AttributeListModel<'Node', NodeAttributeKey>) {
     node.apply({
       [_.fontname]: FontName,
-      [_.nojustify]: true,
       [_.shape]: 'rect',
       [_.width]: pxToInch(320),
       [_.height]: pxToInch(180),
@@ -187,7 +186,6 @@ export abstract class DotPrinter<V extends ComputedView = ComputedView> {
   }
   protected applyEdgeAttributes(edge: AttributeListModel<'Edge', EdgeAttributeKey>) {
     edge.apply({
-      [_.nojustify]: true,
       [_.arrowsize]: 0.75,
       [_.fontname]: FontName,
       [_.fontsize]: pxToPoints(14),

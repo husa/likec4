@@ -11,7 +11,7 @@ import type {
 } from '@likec4/core'
 import { invariant, nonNullable } from '@likec4/core'
 import { logger } from '@likec4/log'
-import { hasAtLeast, isTruthy } from 'remeda'
+import { flatMap, hasAtLeast, isTruthy, pipe } from 'remeda'
 import { EDGE_LABEL_MAX_CHARS, wrap } from './dot-labels'
 import type { BoundingBox, GraphvizJson, GvId, GVPos } from './types-dot'
 import { inchToPx, pointToPx } from './utils'
@@ -120,30 +120,37 @@ function parseLabelBbox(
 //   https://forum.graphviz.org/t/how-to-interpret-graphviz-edge-coordinates-from-xdot-or-json/879/11
 // Example:
 //   https://github.com/hpcc-systems/Visualization/blob/trunk/packages/graph/workers/src/graphviz.ts#L38-L93
-function parseEdgePoints(
+function parsePointsBezier(
   { _draw_, likec4_id = '???' as EdgeId }: GraphvizJson.Edge,
   viewId: string = '<unknown view>'
 ): DiagramEdge['points'] {
-  try {
-    const bezierOps = _draw_.filter((v): v is GraphvizJson.DrawOps.BSpline => v.op.toLowerCase() === 'b')
-    invariant(hasAtLeast(bezierOps, 1), `view ${viewId} edge ${likec4_id} should have at least one bezier draw op`)
-    if (bezierOps.length > 1) {
-      logger.warn(`view ${viewId} edge ${likec4_id} has more than one bezier draw op, using the first one only`)
-    }
-    const points = bezierOps[0].points.map(p => pointToPx(p))
-    invariant(hasAtLeast(points, 2), `view ${viewId} edge ${likec4_id} should have at least two points`)
-    return points
-  } catch (e) {
-    logger.error(`failed on parsing view ${viewId} edge ${likec4_id} _draw_:\n${JSON.stringify(_draw_, null, 2)}`)
-    throw e
+  const bezierOps = _draw_.filter((v): v is GraphvizJson.DrawOps.BSpline => v.op.toLowerCase() === 'b')
+  invariant(hasAtLeast(bezierOps, 1), `view ${viewId} edge ${likec4_id} should have at least one bezier draw op`)
+  if (bezierOps.length > 1) {
+    logger.warn(`view ${viewId} edge ${likec4_id} has more than one bezier draw op, using the first one only`)
   }
+  const points = bezierOps[0].points.map(p => pointToPx(p))
+  invariant(hasAtLeast(points, 2), `view ${viewId} edge ${likec4_id} should have at least two points`)
+  return points
+}
+
+function parsePointsPolyline(
+  { _draw_, likec4_id = '???' as EdgeId }: GraphvizJson.Edge
+): DiagramEdge['points'] {
+  const points = pipe(
+    _draw_.filter((v): v is GraphvizJson.DrawOps.Polyline | GraphvizJson.DrawOps.BSpline =>
+      v.op.toLowerCase() === 'b' || v.op.toLowerCase() === 'l'
+    ),
+    flatMap(op => op.points.map(p => pointToPx(p)))
+  )
+  invariant(hasAtLeast(points, 2), `edge ${likec4_id} should have at least two points`)
+  return points
 }
 
 function parseGraphvizEdge(
   graphvizEdge: GraphvizJson.Edge,
-  { id, source, target, dir, label, description, ...computedEdge }: ComputedEdge,
-  viewId: string
-): DiagramEdge {
+  { id, source, target, dir, label, description, ...computedEdge }: ComputedEdge
+) {
   const labelBBox = parseLabelBbox(graphvizEdge._ldraw_ ?? graphvizEdge._tldraw_ ?? graphvizEdge._hldraw_)
   const isBack = graphvizEdge.dir === 'back' || dir === 'back'
   label = label ? wrap(label, EDGE_LABEL_MAX_CHARS).join('\n') : null
@@ -156,11 +163,10 @@ function parseGraphvizEdge(
     label,
     ...isTruthy(description) && { description },
     ...isTruthy(graphvizEdge.pos) && { dotpos: graphvizEdge.pos },
-    points: parseEdgePoints(graphvizEdge, viewId),
     labelBBox,
     ...(isBack ? { dir: 'back' } : {}),
     ...computedEdge
-  }
+  } satisfies Partial<DiagramEdge>
 }
 
 export function parseGraphvizJson(json: string, computedView: ComputedView): DiagramView {
@@ -202,16 +208,25 @@ export function parseGraphvizJson(json: string, computedView: ComputedView): Dia
     })
   }
 
+  const isPolyline = diagram.edgeType === 'polyline'
   const graphvizEdges = graphvizJson.edges ?? []
   for (const computedEdge of computedEdges) {
     const graphvizEdge = graphvizEdges.find(e => e.likec4_id === computedEdge.id)
     if (!graphvizEdge) {
-      logger.warn(`View ${view.id} edge ${computedEdge.id} not found in graphviz output, skipping`)
+      logger.warn(`View ${diagram.id} edge ${computedEdge.id} not found in graphviz output, skipping`)
       continue
     }
-    diagram.edges.push(
-      parseGraphvizEdge(graphvizEdge, computedEdge, view.id)
-    )
+    try {
+      diagram.edges.push({
+        ...parseGraphvizEdge(graphvizEdge, computedEdge),
+        points: isPolyline ? parsePointsPolyline(graphvizEdge) : parsePointsBezier(graphvizEdge, diagram.id)
+      })
+    } catch (err) {
+      const msg = `Failed parse edge "${computedEdge.id}" in view "${diagram.id}" graphvizEdge: ${
+        JSON.stringify(graphvizEdge)
+      }`
+      logger.error(msg, err)
+    }
   }
 
   return diagram
@@ -282,7 +297,7 @@ export function parseOverviewGraphvizJson(json: string): OverviewGraph {
         id: `link${idFromGvId(edge._gvid)}`,
         source,
         target,
-        points: parseEdgePoints(edge)
+        points: parsePointsBezier(edge)
       })
     } catch (e) {
       logger.warn(e)

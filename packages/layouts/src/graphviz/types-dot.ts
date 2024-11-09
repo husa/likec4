@@ -68,6 +68,11 @@ export namespace GraphvizJson {
       points: Point[]
     }
 
+    export type Polyline = {
+      op: 'l'
+      points: Point[]
+    }
+
     export type Color = {
       op: 'c'
       grad: string
@@ -80,7 +85,7 @@ export namespace GraphvizJson {
     }
   }
 
-  export type DrawOp = DrawOps.Style | DrawOps.BSpline | DrawOps.Color | DrawOps.Polygon
+  export type DrawOp = DrawOps.Style | DrawOps.BSpline | DrawOps.Color | DrawOps.Polygon | DrawOps.Polyline
 
   export type LabelDrawOps =
     | {

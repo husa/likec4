@@ -43,15 +43,6 @@ function wrapWithFont({
   return `<FONT POINT-SIZE="${pxToPoints(fontsize)}"${Color}>${html}</FONT>`
 }
 
-/**
- * "Faking" a node icon with a blue square
- * to preserve space for real icons.
- * #112233
- */
-export function nodeIcon() {
-  return `<TABLE FIXEDSIZE="TRUE" BGCOLOR="#112233" WIDTH="${IconSizePoints}" HEIGHT="${IconSizePoints}" BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD> </TD></TR></TABLE>`
-}
-
 export function nodeLabel(node: ComputedNode, colorValues: ElementThemeColorValues) {
   const hasIcon = isTruthy(node.icon)
   const lines = [
@@ -91,15 +82,18 @@ export function nodeLabel(node: ComputedNode, colorValues: ElementThemeColorValu
       // if first row, prepend columns with ROWSPAN
       if (idx === 0) {
         const rowspan = all.length > 1 ? ` ROWSPAN="${all.length}"` : ''
-        let leftwidth = 76 // icon is 60px, plus 10px here and plus 10px padding from node margin
+        // icon is 48px,
+        // + 10px gap to text
+        // + 16px node padding
+        let leftwidth = 74
         if (node.shape === 'queue' || node.shape === 'mobile') {
           // add 20px padding more
           leftwidth += 20
         }
         // prepend empty cell (left padding)
-        cell = `<TD${rowspan} WIDTH="${leftwidth}" FIXEDSIZE="TRUE"> </TD>${cell}`
+        cell = `<TD${rowspan} WIDTH="${leftwidth}" HEIGHT="20" FIXEDSIZE="TRUE"> </TD>${cell}`
         // append empty cell (right padding)
-        cell = `${cell}<TD${rowspan} WIDTH="16" FIXEDSIZE="TRUE"> </TD>`
+        cell = `${cell}<TD${rowspan} WIDTH="16" HEIGHT="20" FIXEDSIZE="TRUE"> </TD>`
       }
       return `<TR>${cell}</TR>`
     }
