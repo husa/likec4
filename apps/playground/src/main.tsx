@@ -9,7 +9,9 @@ import '@xyflow/react/dist/style.css'
 import { configureMonacoWorkers } from '#monaco/bootstrap'
 import ReactDOM from 'react-dom/client'
 import { Routes } from './router'
+import {installIntoGlobal} from 'iterator-helpers-polyfill'
 
+installIntoGlobal()
 configureMonacoWorkers()
 
 ReactDOM.createRoot(document.getElementById('like4-root')!).render(
